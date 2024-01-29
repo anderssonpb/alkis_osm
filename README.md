@@ -46,7 +46,10 @@ This project contains sensitive ALKIS data from the Bielefeld city government. E
 
 Source Code:
 
+First part:
+
 ```python
+
 
 # Importing necessary libraries
 import geopandas as gpd
@@ -101,8 +104,64 @@ def calculate_color_and_save():
 # Calling the function to calculate, color, and save the data
 calculate_color_and_save()
 ```
+Second Part:
 
+Also added is Watchdog 3.0.0 - Python API and shell utilities to monitor file system events and thus run the programme every time new files are added, thus generating new results on a daily, weekly or monthly basis. 
 
+```python
+import time
+import os
+import subprocess
+import logging
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
+
+# Konfiguration des Protokollierens
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+class MyHandler(FileSystemEventHandler):
+    def on_created(self, event):
+        if not event.is_directory and event.src_path.endswith(".geojson"):
+            geojson_file = os.path.basename(event.src_path)
+            if geojson_file in ["ALKIS_Gebaeude_alle_Attribute.geojson", "osm_building_geojson_re.geojson"]:
+                logger.info(f"Datei GeoJSON {geojson_file} wurde erstellt.")
+                self.execute_ALKIS_OSM_script()
+
+    def execute_ALKIS_OSM_script(self):
+        ALKIS_OSM_script = r'C:\Users\yourfile.py'
+        if os.path.exists(ALKIS_OSM_script):
+            logger.info("Starten des Skripts ALKIS_OSM.py...")
+            try:
+                subprocess.run(["python", ALKIS_OSM_script], check=True)
+                logger.info("Skript ALKIS_OSM.py erfolgreich abgeschlossen.")
+            except subprocess.CalledProcessError as e:
+                logger.error(f"Fehler beim Ausführen des Skripts: {e}")
+        else:
+            logger.error("Das skript ALKIS_OSM.py hat nicht gefunden.")
+
+class Main():
+    def __init__(self):
+        self.observer = Observer()
+        self.handler = MyHandler()
+
+    def start(self):
+        path = r'C:\Users\yourfile'
+        self.observer.schedule(self.handler, path, recursive=True)
+        self.observer.start()
+
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            self.observer.stop()
+        self.observer.join()
+
+if __name__ == "__main__":
+    main = Main()
+    main.start()
+
+```
 
 Author:
 Andersson Barbosa 
